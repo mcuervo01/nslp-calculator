@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NSLP Lunch Eligibility Calculator</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        const LunchEligibilityCalculator = () => {
+          const [householdSize, setHouseholdSize] = useState('');
+          const [incomeFrequency, setIncomeFrequency] = useState('Annual');
+          const [incomeAmount, setIncomeAmount] = useState('');
+          
+          // Income sources for conversion
+          const [incomeSources, setIncomeSources] = useState([
+            { frequency: 'Annual', amount: '', description: '' }
+          ]);
+
+          // Eligibility criteria data (2025-26 school year)
+          const eligibilityCriteria = {
+            1: { free: 20345, reduced: 28953, monthlyFree: 1696, monthlyReduced: 2413, twiceMonthlyFree: 848, twiceMonthlyReduced: 1207, biweeklyFree: 783, biweeklyReduced: 1114, weeklyFree: 392, weeklyReduced: 557 },
+            2: { free: 27495, reduced: 39128, monthlyFree: 2292, monthlyReduced: 3261, twiceMonthlyFree: 1146, twiceMonthlyReduced: 1631, biweeklyFree: 1058, biweeklyReduced: 1505, weeklyFree: 529, weeklyReduced: 753 },
+            3: { free: 34645, reduced: 49303, monthlyFree: 2888, monthlyReduced: 4109, twiceMonthlyFree: 1444, twiceMonthlyReduced: 2055, biweeklyFree: 1333, biweeklyReduced: 1897, weeklyFree: 667, weeklyReduced: 949 },
+            4: { free: 41795, reduced: 59478, monthlyFree: 3483, monthlyReduced: 4957, twiceMonthlyFree: 1742, twiceMonthlyReduced: 2479, biweeklyFree: 1608, biweeklyReduced: 2288, weeklyFree: 804, weeklyReduced: 1144 },
+            5: { free: 48945, reduced: 69653, monthlyFree: 4079, monthlyReduced: 5805, twiceMonthlyFree: 2040, twiceMonthlyReduced: 2903, biweeklyFree: 1883, biweeklyReduced: 2679, weeklyFree: 942, weeklyReduced: 1340 },
+            6: { free: 56095, reduced: 79828, monthlyFree: 4675, monthlyReduced: 6653, twiceMonthlyFree: 2338, twiceMonthlyReduced: 3327, biweeklyFree: 2158, biweeklyReduced: 3071, weeklyFree: 1079, weeklyReduced: 1536 },
+            7: { free: 63245, reduced: 90003, monthlyFree: 5271, monthlyReduced: 7501, twiceMonthlyFree: 2636, twiceMonthlyReduced: 3751, biweeklyFree: 2433, biweeklyReduced: 3462, weeklyFree: 1217, weeklyReduced: 1731 },
+            8: { free: 70395, reduced: 100178, monthlyFree: 5867, monthlyReduced: 8349, twiceMonthlyFree: 2934, twiceMonthlyReduced: 4175, biweeklyFree: 2708, biweeklyReduced: 3853, weeklyFree: 1354, weeklyReduced: 1927 },
+            9: { free: 77545, reduced: 110353, monthlyFree: 6463, monthlyReduced: 9197, twiceMonthlyFree: 3232, twiceMonthlyReduced: 4599, biweeklyFree: 2983, biweeklyReduced: 4245, weeklyFree: 1492, weeklyReduced: 2123 },
+            10: { free: 84695, reduced: 120528, monthlyFree: 7059, monthlyReduced: 10045, twiceMonthlyFree: 3530, twiceMonthlyReduced: 5023, biweeklyFree: 3258, biweeklyReduced: 4637, weeklyFree: 1630, weeklyReduced: 2319 },
+            11: { free: 91845, reduced: 130703, monthlyFree: 7655, monthlyReduced: 10893, twiceMonthlyFree: 3828, twiceMonthlyReduced: 5447, biweeklyFree: 3533, biweeklyReduced: 5029, weeklyFree: 1768, weeklyReduced: 2515 },
+            12: { free: 98995, reduced: 140878, monthlyFree: 8251, monthlyReduced: 11741, twiceMonthlyFree: 4126, twiceMonthlyReduced: 5871, biweeklyFree: 3808, biweeklyReduced: 5421, weeklyFree: 1906, weeklyReduced: 2711 },
+            13: { free: 106145, reduced: 151053, monthlyFree: 8847, monthlyReduced: 12589, twiceMonthlyFree: 4424, twiceMonthlyReduced: 6295, biweeklyFree: 4083, biweeklyReduced: 5813, weeklyFree: 2044, weeklyReduced: 2907 },
+            14: { free: 113295, reduced: 161228, monthlyFree: 9443, monthlyReduced: 13437, twiceMonthlyFree: 4722, twiceMonthlyReduced: 6719, biweeklyFree: 4358, biweeklyReduced: 6205, weeklyFree: 2182, weeklyReduced: 3103 },
+            15: { free: 120445, reduced: 171403, monthlyFree: 10039, monthlyReduced: 14285, twiceMonthlyFree: 5020, twiceMonthlyReduced: 7143, biweeklyFree: 4633, biweeklyReduced: 6597, weeklyFree: 2320, weeklyReduced: 3299 },
+            16: { free: 127595, reduced: 181578, monthlyFree: 10635, monthlyReduced: 15133, twiceMonthlyFree: 5318, twiceMonthlyReduced: 7567, biweeklyFree: 4908, biweeklyReduced: 6989, weeklyFree: 2458, weeklyReduced: 3495 },
+            17: { free: 134745, reduced: 191753, monthlyFree: 11231, monthlyReduced: 15981, twiceMonthlyFree: 5616, twiceMonthlyReduced: 7991, biweeklyFree: 5183, biweeklyReduced: 7381, weeklyFree: 2596, weeklyReduced: 3691 },
+            18: { free: 141895, reduced: 201928, monthlyFree: 11827, monthlyReduced: 16829, twiceMonthlyFree: 5914, twiceMonthlyReduced: 8415, biweeklyFree: 5458, biweeklyReduced: 7773, weeklyFree: 2734, weeklyReduced: 3887 },
+            19: { free: 149045, reduced: 212103, monthlyFree: 12423, monthlyReduced: 17677, twiceMonthlyFree: 6212, twiceMonthlyReduced: 8839, biweeklyFree: 5733, biweeklyReduced: 8165, weeklyFree: 2872, weeklyReduced: 4083 },
+            20: { free: 156195, reduced: 222278, monthlyFree: 13019, monthlyReduced: 18525, twiceMonthlyFree: 6510, twiceMonthlyReduced: 9263, biweeklyFree: 6008, biweeklyReduced: 8557, weeklyFree: 3010, weeklyReduced: 4279 }
+          };
+
+          // Calculate eligibility
+          const eligibilityResult = useMemo(() => {
+            const size = parseInt(householdSize);
+            const amount = parseFloat(incomeAmount);
+            
+            if (!size || isNaN(amount) || size < 1 || size > 20) {
+              return { status: 'Enter Info. for Determination', errorProne: '' };
+            }
+            
+            const criteria = eligibilityCriteria[size];
+            if (!criteria) return { status: 'Enter Info. for Determination', errorProne: '' };
+            
+            let freeThreshold, reducedThreshold;
+            
+            switch (incomeFrequency) {
+              case 'Annual':
+                freeThreshold = criteria.free;
+                reducedThreshold = criteria.reduced;
+                break;
+              case 'Monthly':
+                freeThreshold = criteria.monthlyFree;
+                reducedThreshold = criteria.monthlyReduced;
+                break;
+              case 'Twice per Month':
+                freeThreshold = criteria.twiceMonthlyFree;
+                reducedThreshold = criteria.twiceMonthlyReduced;
+                break;
+              case 'Every Two Weeks':
+                freeThreshold = criteria.biweeklyFree;
+                reducedThreshold = criteria.biweeklyReduced;
+                break;
+              case 'Weekly':
+                freeThreshold = criteria.weeklyFree;
+                reducedThreshold = criteria.weeklyReduced;
+                break;
+              default:
+                return { status: 'Enter Info. for Determination', errorProne: '' };
+            }
+            
+            let status;
+            if (amount <= freeThreshold) {
+              status = 'Free';
+            } else if (amount <= reducedThreshold) {
+              status = 'Reduced';
+            } else {
+              status = 'Not Eligible';
+            }
+            
+            // Check if error-prone (within threshold of boundary)
+            let errorProne = 'Not Error-Prone';
+            if (status === 'Free' || status === 'Reduced') {
+              let threshold;
+              const currentThreshold = status === 'Free' ? freeThreshold : reducedThreshold;
+              
+              switch (incomeFrequency) {
+                case 'Annual':
+                  threshold = 1200;
+                  break;
+                case 'Monthly':
+                  threshold = 100;
+                  break;
+                case 'Twice per Month':
+                  threshold = 50;
+                  break;
+                case 'Every Two Weeks':
+                  threshold = 46.15;
+                  break;
+                case 'Weekly':
+                  threshold = 23.07;
+                  break;
+                default:
+                  threshold = 0;
+              }
+              
+              if (Math.abs(amount - currentThreshold) <= threshold) {
+                errorProne = 'Error-Prone';
+              }
+            }
+            
+            return { status, errorProne };
+          }, [householdSize, incomeFrequency, incomeAmount]);
+
+          // Calculate converted annual income
+          const convertedAnnualIncome = useMemo(() => {
+            return incomeSources.reduce((total, source) => {
+              const amount = parseFloat(source.amount) || 0;
+              if (amount === 0) return total;
+              
+              const multiplier = {
+                'Weekly': 52,
+                'Every Two Weeks': 26,
+                'Twice per Month': 24,
+                'Monthly': 12,
+                'Annual': 1
+              }[source.frequency] || 1;
+              
+              return total + (amount * multiplier);
+            }, 0);
+          }, [incomeSources]);
+
+          const addIncomeSource = () => {
+            setIncomeSources([...incomeSources, { frequency: 'Annual', amount: '', description: '' }]);
+          };
+
+          const removeIncomeSource = (index) => {
+            if (incomeSources.length > 1) {
+              setIncomeSources(incomeSources.filter((_, i) => i !== index));
+            }
+          };
+
+          const updateIncomeSource = (index, field, value) => {
+            const updated = [...incomeSources];
+            updated[index][field] = value;
+            setIncomeSources(updated);
+          };
+
+          const clearForm = () => {
+            setHouseholdSize('');
+            setIncomeFrequency('Annual');
+            setIncomeAmount('');
+            setIncomeSources([{ frequency: 'Annual', amount: '', description: '' }]);
+          };
+
+          const printResults = () => {
+            const printWindow = window.open('', '_blank');
+            const printContent = `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <title>NSLP Lunch Eligibility Results</title>
+                  <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .header { text-align: center; margin-bottom: 30px; }
+                    .result-box { border: 2px solid #333; padding: 15px; margin: 15px 0; }
+                    .status-free { background-color: #d4edda; border-color: #28a745; }
+                    .status-reduced { background-color: #fff3cd; border-color: #ffc107; }
+                    .status-not-eligible { background-color: #f8d7da; border-color: #dc3545; }
+                    .status-error-prone { background-color: #ffeaa7; border-color: #fdcb6e; }
+                    .income-sources { margin-top: 20px; }
+                    .income-source { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+                    th, td { border: 1px solid #333; padding: 8px; text-align: left; }
+                    th { background-color: #f0f0f0; }
+                    @media print { button { display: none; } }
+                  </style>
+                </head>
+                <body>
+                  <div class="header">
+                    <h1>NSLP Lunch Eligibility Calculator Results</h1>
+                    <p>Calculation Date: ${new Date().toLocaleDateString()}</p>
+                  </div>
+                  
+                  <div class="result-box ${
+                    eligibilityResult.status === 'Free' ? 'status-free' :
+                    eligibilityResult.status === 'Reduced' ? 'status-reduced' :
+                    eligibilityResult.status === 'Not Eligible' ? 'status-not-eligible' : ''
+                  }">
+                    <h2>Eligibility Determination</h2>
+                    <p><strong>Household Size:</strong> ${householdSize}</p>
+                    <p><strong>Income Frequency:</strong> ${incomeFrequency}</p>
+                    <p><strong>Income Amount:</strong> $${parseFloat(incomeAmount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                    <p><strong>Eligibility Status:</strong> ${eligibilityResult.status}</p>
+                    ${eligibilityResult.errorProne ? `<p><strong>Error-Prone Status:</strong> <span class="status-error-prone">${eligibilityResult.errorProne}</span></p>` : ''}
+                    ${eligibilityResult.errorProne === 'Error-Prone' ? '<p><em>⚠️ This application is close to the eligibility threshold and should be reviewed carefully for accuracy.</em></p>' : ''}
+                  </div>
+                  
+                  ${incomeSources.some(source => source.amount) ? `
+                  <div class="income-sources">
+                    <h3>Income Sources Used for Conversion</h3>
+                    ${incomeSources.filter(source => source.amount).map((source, index) => `
+                      <div class="income-source">
+                        <strong>${source.description || `Income Source ${index + 1}`}</strong><br>
+                        Frequency: ${source.frequency}<br>
+                        Amount: $${parseFloat(source.amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}<br>
+                        Annual Equivalent: $${((parseFloat(source.amount) || 0) * ({
+                          'Weekly': 52,
+                          'Every Two Weeks': 26,
+                          'Twice per Month': 24,
+                          'Monthly': 12,
+                          'Annual': 1
+                        }[source.frequency] || 1)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    `).join('')}
+                    <p><strong>Total Annual Income: $${convertedAnnualIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></p>
+                  </div>
+                  ` : ''}
+                  
+                  <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Print This Page</button>
+                </body>
+              </html>
+            `;
+            
+            printWindow.document.write(printContent);
+            printWindow.document.close();
+            printWindow.focus();
+          };
+
+          return React.createElement('div', { className: "max-w-6xl mx-auto p-6 bg-white" }, 
+            React.createElement('h1', { className: "text-3xl font-bold text-center mb-8 text-blue-900" }, 
+              "NSLP Lunch Eligibility Calculator (2025-26)"
+            ),
+            
+            // Action Buttons
+            React.createElement('div', { className: "flex justify-center gap-4 mb-8" },
+              React.createElement('button', {
+                onClick: clearForm,
+                className: "px-6 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium"
+              }, "Clear Form"),
+              React.createElement('button', {
+                onClick: printResults,
+                className: "px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium",
+                disabled: !householdSize || !incomeAmount
+              }, "Print Results")
+            ),
+            
+            React.createElement('div', { className: "grid grid-cols-1 lg:grid-cols-2 gap-8" },
+              // Main form section
+              React.createElement('div', { className: "bg-blue-50 p-6 rounded-lg" },
+                React.createElement('h2', { className: "text-xl font-semibold mb-4 text-blue-900" },
+                  "Household Application Information"
+                ),
+                React.createElement('div', { className: "text-sm text-gray-600 mb-4" },
+                  "Enter information from application. If there are multiple income frequencies, use the conversion calculator below."
+                ),
+                
+                React.createElement('div', { className: "space-y-4" },
+                  React.createElement('div', null,
+                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
+                      "Household Size"
+                    ),
+                    React.createElement('input', {
+                      type: "number",
+                      min: "1",
+                      max: "20",
+                      value: householdSize,
+                      onChange: (e) => setHouseholdSize(e.target.value),
+                      className: "w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                      placeholder: "Enter household size"
+                    })
+                  ),
+                  
+                  React.createElement('div', null,
+                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
+                      "Income Frequency"
+                    ),
+                    React.createElement('select', {
+                      value: incomeFrequency,
+                      onChange: (e) => setIncomeFrequency(e.target.value),
+                      className: "w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    },
+                      React.createElement('option', { value: "Annual" }, "Annual"),
+                      React.createElement('option', { value: "Monthly" }, "Monthly"),
+                      React.createElement('option', { value: "Twice per Month" }, "Twice per Month"),
+                      React.createElement('option', { value: "Every Two Weeks" }, "Every Two Weeks"),
+                      React.createElement('option', { value: "Weekly" }, "Weekly")
+                    )
+                  ),
+                  
+                  React.createElement('div', null,
+                    React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
+                      "Income Amount"
+                    ),
+                    React.createElement('input', {
+                      type: "number",
+                      step: "0.01",
+                      value: incomeAmount,
+                      onChange: (e) => setIncomeAmount(e.target.value),
+                      className: "w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500",
+                      placeholder: "Enter income amount"
+                    })
+                  )
+                ),
+                
+                // Results section
+                React.createElement('div', { className: "mt-6 p-4 bg-white rounded border" },
+                  React.createElement('div', { className: "grid grid-cols-2 gap-4" },
+                    React.createElement('div', null,
+                      React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
+                        "Eligibility Status"
+                      ),
+                      React.createElement('div', { 
+                        className: `p-2 rounded text-center font-semibold ${
+                          eligibilityResult.status === 'Free' ? 'bg-green-100 text-green-800' :
+                          eligibilityResult.status === 'Reduced' ? 'bg-yellow-100 text-yellow-800' :
+                          eligibilityResult.status === 'Not Eligible' ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-600'
+                        }`
+                      }, eligibilityResult.status)
+                    ),
+                    
+                    React.createElement('div', null,
+                      React.createElement('label', { className: "block text-sm font-medium text-gray-700 mb-1" },
+                        "Error-Prone Status"
+                      ),
+                      React.createElement('div', { 
+                        className: `p-2 rounded text-center font-semibold ${
+                          eligibilityResult.errorProne === 'Error-Prone' ? 'bg-orange-100 text-orange-800' :
+                          eligibilityResult.errorProne === 'Not Error-Prone' ? 'bg-blue-100 text-blue-800' :
+                          'bg-gray-100 text-gray-600'
+                        }`
+                      }, eligibilityResult.errorProne || 'N/A')
+                    )
+                  ),
+                  
+                  eligibilityResult.errorProne === 'Error-Prone' && React.createElement('div', { className: "mt-3 text-xs text-gray-500" },
+                    React.createElement('div', { className: "bg-orange-50 p-2 rounded" },
+                      "⚠️ This application is close to the eligibility threshold and should be reviewed carefully for accuracy."
+                    )
+                  )
+                )
+              ),
+
+              // Income conversion section
+              React.createElement('div', { className: "bg-green-50 p-6 rounded-lg" },
+                React.createElement('h2', { className: "text-xl font-semibold mb-4 text-green-900" },
+                  "Income Conversion Calculator"
+                ),
+                React.createElement('div', { className: "text-sm text-gray-600 mb-4" },
+                  "Use this section when household members have different income frequencies. Add each income source below to calculate total annual income."
+                ),
+                
+                React.createElement('div', { className: "space-y-4" },
+                  incomeSources.map((source, index) => 
+                    React.createElement('div', { key: index, className: "p-4 bg-white rounded border" },
+                      React.createElement('div', { className: "flex justify-between items-center mb-3" },
+                        React.createElement('h4', { className: "font-medium text-gray-700" }, `Income Source ${index + 1}`),
+                        incomeSources.length > 1 && React.createElement('button', {
+                          onClick: () => removeIncomeSource(index),
+                          className: "text-red-600 hover:text-red-800 text-sm"
+                        }, "Remove")
+                      ),
+                      
+                      React.createElement('div', { className: "grid grid-cols-1 md:grid-cols-3 gap-3" },
+                        React.createElement('div', null,
+                          React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" },
+                            "Description (optional)"
+                          ),
+                          React.createElement('input', {
+                            type: "text",
+                            value: source.description,
+                            onChange: (e) => updateIncomeSource(index, 'description', e.target.value),
+                            className: "w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm",
+                            placeholder: "e.g., Parent 1 salary, Part-time job"
+                          })
+                        ),
+                        
+                        React.createElement('div', null,
+                          React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" },
+                            "Frequency"
+                          ),
+                          React.createElement('select', {
+                            value: source.frequency,
+                            onChange: (e) => updateIncomeSource(index, 'frequency', e.target.value),
+                            className: "w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                          },
+                            React.createElement('option', { value: "Weekly" }, "Weekly"),
+                            React.createElement('option', { value: "Every Two Weeks" }, "Every Two Weeks"),
+                            React.createElement('option', { value: "Twice per Month" }, "Twice per Month"),
+                            React.createElement('option', { value: "Monthly" }, "Monthly"),
+                            React.createElement('option', { value: "Annual" }, "Annual")
+                          )
+                        ),
+                        
+                        React.createElement('div', null,
+                          React.createElement('label', { className: "block text-xs font-medium text-gray-700 mb-1" },
+                            "Amount"
+                          ),
+                          React.createElement('input', {
+                            type: "number",
+                            step: "0.01",
+                            value: source.amount,
+                            onChange: (e) => updateIncomeSource(index, 'amount', e.target.value),
+                            className: "w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm",
+                            placeholder: "$0.00"
+                          })
+                        )
+                      ),
+                      
+                      source.amount && React.createElement('div', { className: "mt-2 text-xs text-gray-500" },
+                        `Annual equivalent: $${((parseFloat(source.amount) || 0) * ({
+                          'Weekly': 52,
+                          'Every Two Weeks': 26,
+                          'Twice per Month': 24,
+                          'Monthly': 12,
+                          'Annual': 1
+                        }[source.frequency] || 1)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      )
+                    )
+                  ),
+                  
+                  React.createElement('button', {
+                    onClick: addIncomeSource,
+                    className: "w-full p-2 border-2 border-dashed border-green-300 text-green-600 hover:border-green-400 hover:text-green-700 rounded transition-colors"
+                  }, "+ Add Another Income Source")
+                ),
+                
+                // Conversion result
+                React.createElement('div', { className: "mt-4 p-3 bg-white rounded border" },
+                  React.createElement('div', { className: "text-sm text-gray-600 mb-1" },
+                    "Total Annual Income Amount"
+                  ),
+                  React.createElement('div', { className: "text-lg font-bold text-green-800" },
+                    `${convertedAnnualIncome.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                  ),
+                  React.createElement('div', { className: "flex gap-2" },
+                    React.createElement('button', {
+                      onClick: () => {
+                        setIncomeAmount(convertedAnnualIncome.toFixed(2));
+                        setIncomeFrequency('Annual');
+                      },
+                      className: "mt-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition-colors"
+                    }, "Use This Amount Above"),
+                    React.createElement('button', {
+                      onClick: () => setIncomeSources([{ frequency: 'Annual', amount: '', description: '' }]),
+                      className: "mt-2 px-3 py-1 bg-gray-500 text-white rounded text-sm hover:bg-gray-600 transition-colors"
+                    }, "Clear Sources")
+                  )
+                )
+              )
+            ),
+            
+            // Eligibility criteria reference table
+            React.createElement('div', { className: "mt-8 bg-gray-50 p-6 rounded-lg" },
+              React.createElement('h2', { className: "text-xl font-semibold mb-4 text-gray-900" },
+                "2025-26 Income Eligibility Guidelines"
+              ),
+              React.createElement('div', { className: "overflow-x-auto" },
+                React.createElement('table', { className: "min-w-full bg-white rounded border" },
+                  React.createElement('thead', null,
+                    React.createElement('tr', { className: "bg-gray-100" },
+                      React.createElement('th', { className: "px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, "Household Size"),
+                      React.createElement('th', { className: "px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, "Annual Free"),
+                      React.createElement('th', { className: "px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, "Annual Reduced"),
+                      React.createElement('th', { className: "px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, "Monthly Free"),
+                      React.createElement('th', { className: "px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, "Monthly Reduced"),
+                      React.createElement('th', { className: "px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, "Weekly Free"),
+                      React.createElement('th', { className: "px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" }, "Weekly Reduced")
+                    )
+                  ),
+                  React.createElement('tbody', { className: "divide-y divide-gray-200" },
+                    Object.entries(eligibilityCriteria).slice(0, 10).map(([size, criteria]) =>
+                      React.createElement('tr', { key: size, className: "hover:bg-gray-50" },
+                        React.createElement('td', { className: "px-3 py-2 whitespace-nowrap text-sm font-medium text-gray-900" }, size),
+                        React.createElement('td', { className: "px-3 py-2 whitespace-nowrap text-sm text-gray-500" }, `${criteria.free.toLocaleString()}`),
+                        React.createElement('td', { className: "px-3 py-2 whitespace-nowrap text-sm text-gray-500" }, `${criteria.reduced.toLocaleString()}`),
+                        React.createElement('td', { className: "px-3 py-2 whitespace-nowrap text-sm text-gray-500" }, `${criteria.monthlyFree.toLocaleString()}`),
+                        React.createElement('td', { className: "px-3 py-2 whitespace-nowrap text-sm text-gray-500" }, `${criteria.monthlyReduced.toLocaleString()}`),
+                        React.createElement('td', { className: "px-3 py-2 whitespace-nowrap text-sm text-gray-500" }, `${criteria.weeklyFree}`),
+                        React.createElement('td', { className: "px-3 py-2 whitespace-nowrap text-sm text-gray-500" }, `${criteria.weeklyReduced}`)
+                      )
+                    )
+                  )
+                )
+              ),
+              React.createElement('div', { className: "mt-4 text-sm text-gray-600" },
+                "Showing first 10 household sizes. Guidelines available for household sizes 1-20."
+              )
+            ),
+            
+            // Instructions
+            React.createElement('div', { className: "mt-6 bg-blue-50 p-4 rounded-lg" },
+              React.createElement('h3', { className: "text-lg font-medium mb-2 text-blue-900" }, "How to Use This Calculator"),
+              React.createElement('div', { className: "text-sm text-gray-700 space-y-2" },
+                React.createElement('p', null,
+                  React.createElement('strong', null, "Single Income Frequency: "),
+                  "Enter household size, select income frequency, and enter the income amount in the main section."
+                ),
+                React.createElement('p', null,
+                  React.createElement('strong', null, "Multiple Income Frequencies: "),
+                  "Use the conversion calculator on the right to combine different income sources, then click \"Use This Amount Above\" to transfer the total to the main calculator."
+                ),
+                React.createElement('p', null,
+                  React.createElement('strong', null, "Error-Prone Status: "),
+                  "Applications marked as \"Error-Prone\" are close to eligibility thresholds and should be reviewed carefully for accuracy."
+                )
+              )
+            )
+          );
+        };
+
+        ReactDOM.render(React.createElement(LunchEligibilityCalculator), document.getElementById('root'));
