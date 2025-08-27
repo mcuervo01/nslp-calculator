@@ -11,16 +11,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .header-logo {
+            width: 100vw;
             text-align: center;
-            padding: 20px 0;
+            padding: 30px 0;
             border-bottom: 2px solid #e5e7eb;
-            margin-bottom: 30px;
+            margin: 0 0 30px 0;
             background-color: white;
+            position: relative;
+            left: 50%;
+            right: 50%;
+            margin-left: -50vw;
+            margin-right: -50vw;
         }
 
         .header-logo img {
-            height: 100px;
-            margin-bottom: 15px;
+            height: 180px;
+            margin: 0 auto 20px auto;
+            display: block;
+            max-width: none;
         }
 
         .header-logo h1 {
@@ -45,7 +53,7 @@
 <body>
     <!-- Header with Logo -->
     <div class="header-logo">
-        <img src="mater-academy-logo.png"
+        <img src="mater-academy-logo.png" alt="Mater Academy Food Services">
         <h1>NSLP Lunch Eligibility Calculator (2025-26)</h1>
         <p>Mater Academy Food Services</p>
     </div>
